@@ -8,6 +8,7 @@ import {
   getConnectionHeaders,
 } from './utils/config';
 import { MyMigrations, MigrationFile, MyMigrationsUp } from './utils/types';
+import { getCompletedMigration } from './services/DatabaseService';
 
 const HF_MIGRATION_TABLE_NAME = 'my_migrations';
 const MIGRATIONS_FOLDER_NAME = 'migrations';
@@ -30,18 +31,15 @@ export default defineHook(({ action }, hookExtensionContext) => {
       logger.info('Running My migrations...');
 
       // Get Completed migrations from database
-      const completedMigrations = (await database
-        .select('*')
-        .from(HF_MIGRATION_TABLE_NAME)
-        .orderBy('version')) as MyMigrations[];
-      logger.info(`Found ${completedMigrations.length} migrations in db`);
+      const completedMigrations = await getCompletedMigration(logger, database)
 
-      // Get migrations files
+      // Get migrations files ------------------------------------------------------------------------------------------------
       const migrationsFolderPath = path.join(__dirname, MIGRATIONS_FOLDER_NAME);
       const migrationFiles = readdirSync(migrationsFolderPath).filter((file) =>
         file.endsWith('.js')
       );
       
+      // Get Customer migration files   ------------------------------------------------------------------------------------
       let customerMigrationsFolderPath: string;
       let customerMigrationFiles: string[];
       let migrations: MigrationFile[];
@@ -74,6 +72,8 @@ export default defineHook(({ action }, hookExtensionContext) => {
         ].sort((a, b) => (a.version > b.version ? 1 : -1));
       }
 
+      // ------------------------------------------------------------------------------------
+
       function parseFileName(fileName: string, custom = false) {
         const version = fileName.split('-')[0] || '-1';
         return {
@@ -88,6 +88,8 @@ export default defineHook(({ action }, hookExtensionContext) => {
           ),
         };
       }
+
+      // ------------------------------------------------------------------------------------------------
 
       logger.info(`Found ${migrations.length} My migrations file`);
 
