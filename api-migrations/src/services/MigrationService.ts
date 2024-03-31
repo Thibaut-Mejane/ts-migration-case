@@ -4,10 +4,12 @@ import { MigrationFile, MyMigrationsUp } from "../utils/types";
 import { addCompletedMigration, getCompletedMigration } from "./DatabaseService";
 import { getMigrationFiles } from "./MigrationFileService";
 import { Logger } from "pino";
+import { Knex } from 'knex';
+
 
 const connectionUrl = buildConnectionUrlFromEnvVariables();
 
-export async function migrateFile(logger : Logger, database) {
+export async function migrateFile(logger : Logger, database: Knex) {
     logger.info('Running My migrations...');
 
     // Get Completed migrations from database

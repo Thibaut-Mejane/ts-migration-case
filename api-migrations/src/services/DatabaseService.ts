@@ -1,11 +1,12 @@
 import { Logger } from 'pino';
 import { MyMigrations, } from '../utils/types';
+import { Knex } from 'knex';
 
 
 const HF_MIGRATION_TABLE_NAME = 'my_migrations';
 
 
-export async function getCompletedMigration(logger:Logger, database) {
+export async function getCompletedMigration(logger:Logger, database: Knex) {
     const completedMigrations = (await database
         .select('*')
         .from(HF_MIGRATION_TABLE_NAME)
@@ -16,7 +17,7 @@ export async function getCompletedMigration(logger:Logger, database) {
     return completedMigrations
 }
 
-export async function addCompletedMigration(database, migration: MyMigrations) {
+export async function addCompletedMigration(database: Knex, migration: MyMigrations) {
     await database
     .insert({
       version: migration.version,
