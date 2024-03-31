@@ -6,7 +6,6 @@ import { getMigrationFiles } from "./MigrationFileService";
 import { Logger } from "pino";
 import { Knex } from 'knex';
 
-
 const connectionUrl = buildConnectionUrlFromEnvVariables();
 
 export async function migrateFile(logger : Logger, database: Knex) {
@@ -15,12 +14,13 @@ export async function migrateFile(logger : Logger, database: Knex) {
     // Get Completed migrations from database
     const completedMigrations = await getCompletedMigration(logger, database)
 
-    // Get All Migration files
-    const migrations= getMigrationFiles(logger, completedMigrations) as MigrationFile[]
+    // Get All Migration files and keep only the uncompleted ones
+    const migrations= getMigrationFiles(logger, completedMigrations).filter((m) => !m.completed) as MigrationFile[]
 
     if (migrations && migrations.length > 0) {
-      const headers = getConnectionHeaders();
+      logger.info(`${migrations.length} migrations left to apply`);
 
+      const headers = getConnectionHeaders();
       if (!headers) {
         logger.error(
           `No headers generated, migrations will not be run !`
@@ -28,10 +28,7 @@ export async function migrateFile(logger : Logger, database: Knex) {
         return;
       }
 
-      logger.info(`${migrations.length} migrations left to apply`);
-
       for (const migration of migrations) {
-
         const migrationName = migration.name as string;
         logger.info(`Applying "${migrationName}" ...`);
         // eslint-disable-next-line  @typescript-eslint/no-var-requires
@@ -40,7 +37,6 @@ export async function migrateFile(logger : Logger, database: Knex) {
         };
 
         try {
-
           await retryAsync(
             async () => {
               await up(connectionUrl, headers);
@@ -50,13 +46,14 @@ export async function migrateFile(logger : Logger, database: Knex) {
           logger.info(`migration "${migrationName}" ✔ Done`);
 
           await addCompletedMigration(database, migration);
-          
         } catch (error) {
           logger.info(`Error during migration: "${migrationName}"`);
           logger.error(error);
           return;
         }
       }
+      logger.info('My migrations. ✔ Done');
+    } else {
+      logger.info(`No migrations to apply`);
     }
-    logger.info('My migrations. ✔ Done');
 }

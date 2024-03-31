@@ -7,7 +7,6 @@ import { Logger } from "pino";
 const MIGRATIONS_FOLDER_NAME = 'migrations';
 const migrationsFolderPath = path.join(__dirname, MIGRATIONS_FOLDER_NAME);
 
-
 function getDefaultMigrationFile() {
     return readdirSync(migrationsFolderPath).filter((file) =>
         file.endsWith('.js')
@@ -23,18 +22,18 @@ function getCustomerMigrationFolderPath() {
 
 function getCustomerMigrationFile(logger: Logger) {
     let customerMigrationsFolderPath: string;
-    let customerMigrationFiles: string[];
 
     try {
         customerMigrationsFolderPath = getCustomerMigrationFolderPath()
 
-        customerMigrationFiles = existsSync(customerMigrationsFolderPath)
-          ? readdirSync(customerMigrationsFolderPath).filter((file) =>
+        if (existsSync(customerMigrationsFolderPath)) {
+          return readdirSync(customerMigrationsFolderPath).filter((file) =>
               file.endsWith('.js')
             )
-          : [];
-
-          return customerMigrationFiles
+        } else {
+          logger.info(`No customer migration file found. Only general migrations will run.`);
+          return []
+        }
     } catch(error) {
         logger.info(
             `Customer name is not set. Only general migrations will run.`
@@ -70,7 +69,7 @@ function parseFileName(fileName: string, custom = false, completedMigrations: My
 
    // Compose the final migrations file list with the default ones and the customer ones
    const migrations = [
-     ...migrationFiles.map((filename) => parseFileName(filename,false, completedMigrations)),
+     ...migrationFiles.map((filename) => parseFileName(filename, false, completedMigrations)),
      ...customerMigrationFiles.map((filename) =>
        parseFileName(filename, true, completedMigrations)
      ),
@@ -85,7 +84,6 @@ function parseFileName(fileName: string, custom = false, completedMigrations: My
        'Migration keys collide! Please ensure that every migration uses a unique key.'
      );
    }
-   
-   return migrations.filter((m) => !m.completed)
-
+  
+   return migrations
   }
