@@ -1,15 +1,12 @@
 import { defineHook } from '@directus/extensions-sdk';
-import path from 'node:path';
 import { retryAsync } from 'ts-retry';
 import {
   buildConnectionUrlFromEnvVariables,
   getConnectionHeaders,
 } from './utils/config';
 import { MigrationFile, MyMigrationsUp } from './utils/types';
-import { getCompletedMigration } from './services/DatabaseService';
-import { getMigrationFile, getCustomerMigrationFile, parseFileName } from './services/MigrationFileService';
-
-const HF_MIGRATION_TABLE_NAME = 'my_migrations';
+import { addCompletedMigration, getCompletedMigration } from './services/DatabaseService';
+import { getMigrationFiles } from './services/MigrationFileService';
 
 export default defineHook(({ action }, hookExtensionContext) => {
   let { logger, database } = hookExtensionContext;
@@ -31,30 +28,8 @@ export default defineHook(({ action }, hookExtensionContext) => {
       // Get Completed migrations from database
       const completedMigrations = await getCompletedMigration(logger, database)
 
-      // Get migrations files
-      const migrationFiles = getMigrationFile()
-      
-      // Get Customer migration files
-      const customerMigrationFiles = getCustomerMigrationFile(logger);
-
-      // Compose the final migrations file list with the default ones and the customer ones
-      let migrations: MigrationFile[];
-
-      migrations = [
-        ...migrationFiles.map((filename) => parseFileName(filename,false, completedMigrations)),
-        ...customerMigrationFiles.map((filename) =>
-          parseFileName(filename, true, completedMigrations)
-        ),
-      ].sort((a, b) => (a.version > b.version ? 1 : -1));
-
-      logger.info(`Found ${migrations.length} My migrations file`);
-
-      const migrationKeys = new Set(migrations.map((m) => m.version));
-      if (migrations.length > migrationKeys.size) {
-        throw new Error(
-          'Migration keys collide! Please ensure that every migration uses a unique key.'
-        );
-      }
+      // Get All Migration files
+      let migrations= getMigrationFiles(logger, completedMigrations) as MigrationFile[]
 
       if (migrations && migrations.length > 0) {
         const headers = getConnectionHeaders();
@@ -81,12 +56,7 @@ export default defineHook(({ action }, hookExtensionContext) => {
               { delay: 1000, maxTry: 2 }
             );
             logger.info(`migration "${migrationName}" ✔ Done`);
-            await database
-              .insert({
-                version: migration.version,
-                name: migrationName,
-              })
-              .into(HF_MIGRATION_TABLE_NAME);
+            await addCompletedMigration(database, migration);
           } catch (error) {
             logger.info(`Error during migration: "${migrationName}"`);
             logger.error(error);

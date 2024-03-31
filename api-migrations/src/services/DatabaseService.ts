@@ -14,3 +14,12 @@ export async function getCompletedMigration(logger, database) {
 
     return completedMigrations
 }
+
+export async function addCompletedMigration(database, migration: MyMigrations) {
+    await database
+    .insert({
+      version: migration.version,
+      name: migration.name as string,
+    })
+    .into(HF_MIGRATION_TABLE_NAME);
+}
