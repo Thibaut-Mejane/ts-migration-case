@@ -2,6 +2,7 @@ import { existsSync, readdirSync } from "node:fs";
 import path from 'node:path';
 import { getCustomerName } from '../utils/config';
 import { MyMigrations } from "../utils/types";
+import { Logger } from "pino";
 
 const MIGRATIONS_FOLDER_NAME = 'migrations';
 const migrationsFolderPath = path.join(__dirname, MIGRATIONS_FOLDER_NAME);
@@ -20,7 +21,7 @@ function getCustomerMigrationFolderPath() {
       );
 }
 
-function getCustomerMigrationFile(logger) {
+function getCustomerMigrationFile(logger: Logger) {
     let customerMigrationsFolderPath: string;
     let customerMigrationFiles: string[];
 
@@ -60,7 +61,7 @@ function parseFileName(fileName: string, custom = false, completedMigrations: My
   }
 
   // Compose the final migrations file list with the default ones and the customer ones
-  export function getMigrationFiles(logger, completedMigrations: MyMigrations[]) {
+  export function getMigrationFiles(logger: Logger, completedMigrations: MyMigrations[]) {
    // Get migrations files
    const migrationFiles = getDefaultMigrationFile()
       
@@ -85,6 +86,6 @@ function parseFileName(fileName: string, custom = false, completedMigrations: My
      );
    }
    
-   return migrations
+   return migrations.filter((m) => !m.completed)
 
   }
