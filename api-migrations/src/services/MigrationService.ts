@@ -12,10 +12,12 @@ export async function migrateFile(logger : Logger, database: Knex) {
     logger.info('Running My migrations...');
 
     // Get Completed migrations from database
-    const completedMigrations = await getCompletedMigration(logger, database)
+    const completedMigrations = await getCompletedMigration(database)
+    logger.info(`Found ${completedMigrations.length} migrations in db`);
 
     // Get All Migration files and keep only the uncompleted ones
     const migrations= getMigrationFiles(logger, completedMigrations).filter((m) => !m.completed) as MigrationFile[]
+    logger.info(`Found ${migrations.length} My migrations file to migrate`);
 
     if (migrations && migrations.length > 0) {
       logger.info(`${migrations.length} migrations left to apply`);

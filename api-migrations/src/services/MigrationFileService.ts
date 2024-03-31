@@ -74,8 +74,6 @@ function parseFileName(fileName: string, custom = false, completedMigrations: My
        parseFileName(filename, true, completedMigrations)
      ),
    ].sort((a, b) => (a.version > b.version ? 1 : -1));
-
-   logger.info(`Found ${migrations.length} My migrations file`);
    
    // Check if there's some duplicated version
    const migrationKeys = new Set(migrations.map((m) => m.version));
